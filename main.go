@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -32,6 +33,7 @@ func NewRingBuffer(size int) *RingBuffer {
 		data: make([]int, size),
 		size: size,
 	}
+	log.Printf("New Buff")
 	rb.nonEmpty = sync.NewCond(&rb.mutex)
 	rb.nonFull = sync.NewCond(&rb.mutex)
 	return rb
@@ -48,6 +50,8 @@ func (rb *RingBuffer) Push(val int) bool {
 	if rb.closed {
 		return false
 	}
+
+	log.Printf("Buff push")
 
 	rb.data[rb.tail] = val
 	rb.tail = (rb.tail + 1) % rb.size
@@ -68,6 +72,8 @@ func (rb *RingBuffer) Pop() (int, bool) {
 		return 0, false
 	}
 
+	log.Printf("Buff pop")
+
 	val := rb.data[rb.head]
 	rb.head = (rb.head + 1) % rb.size
 	rb.count--
@@ -85,6 +91,8 @@ func (rb *RingBuffer) Flush() []int {
 		result[i] = rb.data[idx]
 	}
 
+	log.Printf("Buff flush")
+
 	rb.head = 0
 	rb.tail = 0
 	rb.count = 0
@@ -95,6 +103,7 @@ func (rb *RingBuffer) Flush() []int {
 func (rb *RingBuffer) Close() {
 	rb.mutex.Lock()
 	defer rb.mutex.Unlock()
+	log.Printf("Buff close")
 	rb.closed = true
 	rb.nonEmpty.Broadcast()
 	rb.nonFull.Broadcast()
@@ -103,9 +112,10 @@ func (rb *RingBuffer) Close() {
 func filterNegative(input <-chan int, output chan<- int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer close(output)
-
 	for num := range input {
+		log.Printf("FilterNegative: received %d", num)
 		if num >= 0 {
+			log.Printf("FilterNegative: passed %d", num)
 			output <- num
 		}
 	}
@@ -114,9 +124,10 @@ func filterNegative(input <-chan int, output chan<- int, wg *sync.WaitGroup) {
 func filterMultiplesOfThree(input <-chan int, output chan<- int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer close(output)
-
 	for num := range input {
+		log.Printf("filterMultiplesOfThree: received %d", num)
 		if num != 0 && num%3 != 0 {
+			log.Printf("filterMultiplesOfThree: passed %d", num)
 			output <- num
 		}
 	}
